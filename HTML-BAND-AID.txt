@@ -1,0 +1,32 @@
+#!/bin/bash
+# This script is a temporary solution to address an issue where the /var/www/html directory resets unexpectedly.
+
+# Assign the directory to be monitored.
+MONITORED_DIR="/var/www/html"
+# Define the backup directory where we save the current website backup.
+BACKUP_DIR="/home"
+# Specify the name of the backup file saved in /home.
+BACKUP_FILE="$BACKUP_DIR/index.html"
+
+# Create an md5sum hash to monitor changes to files.
+PREV_HASH=$(md5sum "$MONITORED_DIR/index.html" | awk '{print $1}')
+
+# While the script is running, perform the following actions.
+while true; do
+    # Calculate the hash for the file that makes our website work!
+    CURR_HASH=$(md5sum "$MONITORED_DIR/index.html" | awk '{print $1}')
+
+    # If the hash doesn't match, it means our website is not referring to the intended file.
+    # The file may have been reset for unknown reasons or due to testing.
+    if [ "$CURR_HASH" != "$PREV_HASH" ]; then
+        echo "HTML file has changed: $MONITORED_DIR/index.html"
+        echo "Restoring backup file from: $BACKUP_FILE"
+        # Copy the backup file from our /home directory to where our website reads its HTML file, /var/www/html.
+        cp "$BACKUP_FILE" "$MONITORED_DIR/index.html"
+        PREV_HASH=$CURR_HASH
+    fi
+
+    # Sleep timer is set to 600 seconds by default.
+    # Adjust this value for testing purposes. The script will continue running at the specified interval.
+    sleep 600
+done
